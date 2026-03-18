@@ -1,3 +1,14 @@
+---
+title: kf-water-wise
+emoji: 🚀
+colorFrom: green
+colorTo: blue
+sdk: streamlit
+sdk_version: 1.44.1
+app_file: app.py
+pinned: false
+---
+
 # KF-WaterWise
 
 > 天気データとETo計算で水やりを科学的に判定するアプリ。

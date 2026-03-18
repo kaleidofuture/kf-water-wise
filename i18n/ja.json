@@ -58,5 +58,6 @@
   "metric_temp": "気温",
   "metric_humidity": "湿度",
   "metric_wind": "風速",
-  "weekly_forecast": "週間水やり予報"
+  "weekly_forecast": "週間水やり予報",
+  "report_issue": "不具合を報告"
 }

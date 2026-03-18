@@ -412,4 +412,4 @@ render_footer(libraries=[
     "astral — sunrise/sunset and daylight hours",
     "requests — Open-Meteo weather API (free, no key required)",
     "streamlit-js-eval — browser geolocation (GPS)",
-])
+], repo_name="kf-water-wise")

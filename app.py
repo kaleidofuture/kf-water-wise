@@ -135,7 +135,7 @@ def calculate_eto_penman_monteith(
     # Estimate clear-sky radiation for cloud factor
     dr = 1 + 0.033 * math.cos(2 * math.pi / 365 * day_of_year)
     solar_dec = 0.409 * math.sin(2 * math.pi / 365 * day_of_year - 1.39)
-    ws = math.acos(-math.tan(lat_rad) * math.tan(solar_dec))
+    ws = math.acos(max(-1, min(1, -math.tan(lat_rad) * math.tan(solar_dec))))
     Ra = (24 * 60 / math.pi) * 0.0820 * dr * (ws * math.sin(lat_rad) * math.sin(solar_dec) + math.cos(lat_rad) * math.cos(solar_dec) * math.sin(ws))
     Rso = (0.75 + 2e-5 * altitude) * Ra
 
@@ -292,13 +292,13 @@ if st.button(t("analyze_btn"), type="primary", use_container_width=True):
         st.markdown(f"### {t('today_analysis')}")
 
         today_idx = 0
-        t_max = daily["temperature_2m_max"][today_idx]
-        t_min = daily["temperature_2m_min"][today_idx]
-        precip = daily["precipitation_sum"][today_idx]
-        wind = daily["windspeed_10m_max"][today_idx]
-        rh = daily["relative_humidity_2m_mean"][today_idx]
-        radiation = daily["shortwave_radiation_sum"][today_idx]
-        eto_api = daily["et0_fao_evapotranspiration"][today_idx]
+        t_max = daily["temperature_2m_max"][today_idx] or 0
+        t_min = daily["temperature_2m_min"][today_idx] or 0
+        precip = daily["precipitation_sum"][today_idx] or 0
+        wind = daily["windspeed_10m_max"][today_idx] or 0
+        rh = daily["relative_humidity_2m_mean"][today_idx] or 0
+        radiation = daily["shortwave_radiation_sum"][today_idx] or 0
+        eto_api = daily["et0_fao_evapotranspiration"][today_idx] or 0
 
         # Use Open-Meteo's ETo (which is FAO Penman-Monteith)
         eto = eto_api
@@ -315,7 +315,7 @@ if st.button(t("analyze_btn"), type="primary", use_container_width=True):
         daylight = calculate_daylight_hours(lat, lon, today_date)
 
         # Tomorrow's rain for forecast factor
-        rain_tomorrow = daily["precipitation_sum"][1] if len(daily["precipitation_sum"]) > 1 else 0
+        rain_tomorrow = (daily["precipitation_sum"][1] or 0) if len(daily["precipitation_sum"]) > 1 else 0
 
         # Watering recommendation
         recommendation = get_watering_recommendation(eto, crop["kc"], precip, rain_tomorrow)
@@ -378,13 +378,13 @@ if st.button(t("analyze_btn"), type="primary", use_container_width=True):
                 day_label = d.strftime("%m/%d")
                 weekday = d.strftime("%a")
 
-                eto_day = daily["et0_fao_evapotranspiration"][i]
-                precip_day = daily["precipitation_sum"][i]
-                temp_max = daily["temperature_2m_max"][i]
-                temp_min = daily["temperature_2m_min"][i]
+                eto_day = daily["et0_fao_evapotranspiration"][i] or 0
+                precip_day = daily["precipitation_sum"][i] or 0
+                temp_max = daily["temperature_2m_max"][i] or 0
+                temp_min = daily["temperature_2m_min"][i] or 0
 
                 # Determine day's watering need
-                rain_next = daily["precipitation_sum"][i + 1] if i + 1 < len(dates) else 0
+                rain_next = (daily["precipitation_sum"][i + 1] or 0) if i + 1 < len(dates) else 0
                 rec = get_watering_recommendation(eto_day, crop["kc"], precip_day, rain_next)
 
                 st.markdown(f"**{day_label}**")

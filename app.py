@@ -41,7 +41,32 @@ CROP_TYPES = {
     "tomato": {"kc": 1.15, "emoji": "🍅"},
     "potato": {"kc": 1.10, "emoji": "🥔"},
     "beans": {"kc": 1.05, "emoji": "🫘"},
+    "taro": {"kc": 1.10, "emoji": "🟤"},
+    "ginger": {"kc": 0.95, "emoji": "🫚"},
+    "cucumber": {"kc": 1.00, "emoji": "🥒"},
+    "eggplant": {"kc": 1.05, "emoji": "🍆"},
+    "watermelon": {"kc": 1.00, "emoji": "🍉"},
+    "melon": {"kc": 0.95, "emoji": "🍈"},
+    "strawberry": {"kc": 0.85, "emoji": "🍓"},
+    "corn": {"kc": 1.15, "emoji": "🌽"},
+    "soybean": {"kc": 1.10, "emoji": "🫛"},
+    "lettuce": {"kc": 0.95, "emoji": "🥗"},
+    "carrot": {"kc": 1.00, "emoji": "🥕"},
+    "green_onion": {"kc": 0.90, "emoji": "🧅"},
 }
+
+
+WATERING_CAN_LITERS = 6.0  # Standard watering can size in liters
+
+
+def mm_to_watering_cans(mm: float, area_m2: float = 1.0) -> float:
+    """Convert mm of water to number of watering can fills.
+
+    1mm of water over 1m² = 1 liter.
+    So mm * area_m2 = total liters needed.
+    """
+    total_liters = mm * area_m2
+    return total_liters / WATERING_CAN_LITERS
 
 
 def get_city_display_name(city_key: str) -> str:
@@ -185,13 +210,21 @@ def get_watering_recommendation(eto: float, kc: float, precipitation: float, rai
         }
 
 
+def format_watering_can_info(amount_mm: float) -> str:
+    """Format watering can equivalent display."""
+    if amount_mm <= 0:
+        return ""
+    cans = mm_to_watering_cans(amount_mm)
+    return f"🪣 {t('watering_can_unit')}: {cans:.1f}{t('watering_can_suffix')}"
+
+
 # --- Main Content ---
 st.markdown(f"### {t('setup_title')}")
 
 # Location input
 location_mode = st.radio(
     t("location_mode"),
-    [t("mode_city"), t("mode_coordinates")],
+    [t("mode_city"), t("mode_coordinates"), t("mode_gps")],
     horizontal=True,
 )
 
@@ -205,6 +238,30 @@ if location_mode == t("mode_city"):
     )
     lat = CITIES[city_key]["lat"]
     lon = CITIES[city_key]["lon"]
+elif location_mode == t("mode_gps"):
+    # GPS auto-location using streamlit-js-eval for browser geolocation
+    st.info(t("gps_info"))
+    try:
+        from streamlit_js_eval import get_geolocation
+        location_data = get_geolocation()
+        if location_data and "coords" in location_data:
+            lat = location_data["coords"]["latitude"]
+            lon = location_data["coords"]["longitude"]
+            st.success(f"{t('gps_success')}: {lat:.4f}, {lon:.4f}")
+        else:
+            st.warning(t("gps_fallback"))
+            col1, col2 = st.columns(2)
+            with col1:
+                lat = st.number_input(t("latitude"), min_value=-90.0, max_value=90.0, value=35.6762, step=0.01, key="gps_lat")
+            with col2:
+                lon = st.number_input(t("longitude"), min_value=-180.0, max_value=180.0, value=139.6503, step=0.01, key="gps_lon")
+    except ImportError:
+        st.warning(t("gps_not_available"))
+        col1, col2 = st.columns(2)
+        with col1:
+            lat = st.number_input(t("latitude"), min_value=-90.0, max_value=90.0, value=35.6762, step=0.01, key="gps_lat2")
+        with col2:
+            lon = st.number_input(t("longitude"), min_value=-180.0, max_value=180.0, value=139.6503, step=0.01, key="gps_lon2")
 else:
     col1, col2 = st.columns(2)
     with col1:
@@ -265,6 +322,7 @@ if st.button(t("analyze_btn"), type="primary", use_container_width=True):
 
         # Display verdict
         verdict_text = t(recommendation["verdict"])
+        watering_can_text = format_watering_can_info(recommendation["amount_mm"])
         st.markdown(
             f"""
             <div style="background:{recommendation['color']}22; border-left:4px solid {recommendation['color']};
@@ -274,6 +332,7 @@ if st.button(t("analyze_btn"), type="primary", use_container_width=True):
                     {verdict_text}
                 </span>
                 {f'<br><span style="color:#666; margin-left:52px;">{t("recommended_amount")}: {recommendation["amount_mm"]} mm</span>' if recommendation["amount_mm"] > 0 else ''}
+                {f'<br><span style="color:#666; margin-left:52px;">{watering_can_text}</span>' if watering_can_text else ''}
             </div>
             """,
             unsafe_allow_html=True,
@@ -333,6 +392,9 @@ if st.button(t("analyze_btn"), type="primary", use_container_width=True):
                 st.markdown(f"{rec['icon']}")
                 st.caption(f"{temp_min:.0f}-{temp_max:.0f}°C")
                 st.caption(f"☔ {precip_day:.1f}mm")
+                if rec["amount_mm"] > 0:
+                    cans = mm_to_watering_cans(rec["amount_mm"])
+                    st.caption(f"🪣 {cans:.1f}{t('watering_can_suffix')}")
                 st.caption(f"ETo {eto_day:.1f}")
 
         # Legend
@@ -340,10 +402,14 @@ if st.button(t("analyze_btn"), type="primary", use_container_width=True):
         st.caption(
             f"✅ {t('no_water')} | 💧 {t('light_water')} | 🚿 {t('water_needed')}"
         )
+        st.caption(
+            f"🪣 = {t('watering_can_unit')} ({WATERING_CAN_LITERS:.0f}L) / 1㎡"
+        )
 
 # --- Footer ---
 render_footer(libraries=[
     "FAO Penman-Monteith — ETo calculation (implemented inline)",
     "astral — sunrise/sunset and daylight hours",
     "requests — Open-Meteo weather API (free, no key required)",
+    "streamlit-js-eval — browser geolocation (GPS)",
 ])

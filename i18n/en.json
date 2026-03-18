@@ -58,5 +58,6 @@
   "metric_temp": "Temperature",
   "metric_humidity": "Humidity",
   "metric_wind": "Wind Speed",
-  "weekly_forecast": "Weekly Watering Forecast"
+  "weekly_forecast": "Weekly Watering Forecast",
+  "report_issue": "Report an issue"
 }
